@@ -1,6 +1,7 @@
 import { Plugin } from "@opencode/plugin/tui"
 import type { Context } from "@opencode/plugin/tui/plugin"
 import { useKeyboard } from "@opentui/solid"
+import { createSignal, onCleanup } from "solid-js"
 import {
   formatAIStatus,
   buildFallbackDigest,
@@ -100,6 +101,58 @@ export default Plugin.define({
       return listFreeModels(result.data as ModelCandidate[])
     }
 
+    function showProgressDialog(initialStatus: string) {
+      context.ui.dialog.set({ size: "medium", centered: true })
+      const [status, setStatus] = createSignal(initialStatus)
+      let dismissed = false
+
+      const Progress = () => {
+        const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        const [frame, setFrame] = createSignal(0)
+        const timer = setInterval(() => setFrame((value) => (value + 1) % frames.length), 100)
+        onCleanup(() => clearInterval(timer))
+
+        useKeyboard((key) => {
+          if (key.name === "escape") {
+            dismissed = true
+            context.ui.dialog.clear()
+          }
+        })
+
+        return (
+          <box
+            flexDirection="column"
+            width="100%"
+            padding={1}
+            gap={1}
+            backgroundColor={context.theme.background.raised.base}
+          >
+            <box flexDirection="row" justifyContent="flex-end" width="100%">
+              <text fg={context.theme.text.action.secondary.base} wrapMode="none">
+                <strong>esc</strong>
+              </text>
+            </box>
+            <text fg={context.theme.text.base} wrapMode="word">
+              <span fg={context.theme.text.feedback.info.base}>{frames[frame()]}</span> {status()}
+            </text>
+          </box>
+        )
+      }
+
+      context.ui.dialog.show(() => <Progress />)
+
+      return {
+        update(message: string) {
+          if (!dismissed) setStatus(message)
+        },
+        close() {
+          if (dismissed) return
+          dismissed = true
+          context.ui.dialog.clear()
+        },
+      }
+    }
+
     async function renderDigest(notes: ReleaseNote[]) {
       if (notes.length === 0) {
         await context.ui.dialog.alert({
@@ -111,90 +164,102 @@ export default Plugin.define({
       }
 
       const preference = state.modelPreference
-      let models: ModelCandidate[] = []
-      if (preference !== "raw") {
-        try {
-          models = await availableFreeModels()
-        } catch {
-          models = []
-        }
-      }
-
-      let summary: string | undefined
-      let generationFailed = false
-      let aiSucceeded = false
-      let candidates: ModelCandidate[] = []
-      if (preference !== "raw") {
-        if (preference === "auto") {
-          const first = chooseAutoModel(models)
-          candidates = [first, ...models.filter((candidate) => candidate !== first)]
-            .filter((candidate): candidate is ModelCandidate => Boolean(candidate))
-            .slice(0, 3)
-        } else {
-          candidates = models.filter((candidate) => modelKey(candidate) === preference)
-        }
-
-        for (const model of candidates) {
-          const key = cacheKey(channel, notes, model)
-          const cached = state.summaryCache[key]
-          if (cached) {
-            summary = cached
-            aiSucceeded = true
-            break
-          }
-
+      const progress = preference === "raw" ? undefined : showProgressDialog("Preparing AI summary…")
+      try {
+        progress?.update("Looking for an available zero-cost model…")
+        let models: ModelCandidate[] = []
+        if (preference !== "raw") {
           try {
-            const response = await context.client.experimental.generate.text({
-              model: { providerID: model.providerID, id: model.id },
-              prompt: buildSummaryPrompt(notes),
-            })
-            const text = response.text.trim()
-            if (!text) throw new Error("The model returned an empty summary")
-            const generated = text
-            summary = generated
-            aiSucceeded = true
-            await updateState((draft) => {
-              draft.summaryCache[key] = generated
-              const keys = Object.keys(draft.summaryCache)
-              for (const oldKey of keys.slice(0, Math.max(0, keys.length - 8))) {
-                delete draft.summaryCache[oldKey]
-              }
-            })
-            break
+            models = await availableFreeModels()
           } catch {
-            generationFailed = true
+            models = []
           }
         }
-      }
 
-      if (!summary) {
-        summary = buildFallbackDigest(notes)
-      }
-      if (generationFailed && preference !== "raw") {
-        context.ui.toast.show({
-          title: "Beacon used release notes",
-          message: "Free-model attempts were unavailable. Beacon never retries with a paid model.",
-          variant: "warning",
-        })
-      } else if (
-        preference !== "raw" &&
-        preference !== "auto" &&
-        !models.some((candidate) => modelKey(candidate) === preference)
-      ) {
-        context.ui.toast.show({
-          title: "Selected free model unavailable",
-          message: "Showing release notes instead. Choose another available free model with `/beacon model`.",
-          variant: "warning",
-        })
-      } else if (!models.length && preference !== "raw") {
-        context.ui.toast.show({
-          title: "No free model available",
-          message: "Showing curated release notes. Choose a free model with `/beacon model`.",
-          variant: "info",
-        })
-      }
+        let summary: string | undefined
+        let generationFailed = false
+        let aiSucceeded = false
+        let candidates: ModelCandidate[] = []
+        if (preference !== "raw") {
+          if (preference === "auto") {
+            const first = chooseAutoModel(models)
+            candidates = [first, ...models.filter((candidate) => candidate !== first)]
+              .filter((candidate): candidate is ModelCandidate => Boolean(candidate))
+              .slice(0, 3)
+          } else {
+            candidates = models.filter((candidate) => modelKey(candidate) === preference)
+          }
 
-      await showDigestDialog(plainText(summary), preference !== "raw", aiSucceeded)
+          for (const model of candidates) {
+            const key = cacheKey(channel, notes, model)
+            const cached = state.summaryCache[key]
+            if (cached) {
+              progress?.update(`Using cached summary from ${model.name}…`)
+              summary = cached
+              aiSucceeded = true
+              break
+            }
+
+            progress?.update(
+              `Summarizing ${notes.length} release${notes.length === 1 ? "" : "s"} with ${model.name}…`,
+            )
+            try {
+              const response = await context.client.experimental.generate.text({
+                model: { providerID: model.providerID, id: model.id },
+                prompt: buildSummaryPrompt(notes),
+              })
+              const text = response.text.trim()
+              if (!text) throw new Error("The model returned an empty summary")
+              const generated = text
+              summary = generated
+              aiSucceeded = true
+              await updateState((draft) => {
+                draft.summaryCache[key] = generated
+                const keys = Object.keys(draft.summaryCache)
+                for (const oldKey of keys.slice(0, Math.max(0, keys.length - 8))) {
+                  delete draft.summaryCache[oldKey]
+                }
+              })
+              break
+            } catch {
+              generationFailed = true
+            }
+          }
+        }
+
+        if (!summary) {
+          progress?.update("Preparing release notes…")
+          summary = buildFallbackDigest(notes)
+        }
+        if (generationFailed && preference !== "raw") {
+          context.ui.toast.show({
+            title: "Beacon used release notes",
+            message: "Free-model attempts were unavailable. Beacon never retries with a paid model.",
+            variant: "warning",
+          })
+        } else if (
+          preference !== "raw" &&
+          preference !== "auto" &&
+          !models.some((candidate) => modelKey(candidate) === preference)
+        ) {
+          context.ui.toast.show({
+            title: "Selected free model unavailable",
+            message: "Showing release notes instead. Choose another available free model with `/beacon model`.",
+            variant: "warning",
+          })
+        } else if (!models.length && preference !== "raw") {
+          context.ui.toast.show({
+            title: "No free model available",
+            message: "Showing curated release notes. Choose a free model with `/beacon model`.",
+            variant: "info",
+          })
+        }
+
+        progress?.close()
+        await showDigestDialog(plainText(summary), preference !== "raw", aiSucceeded)
+      } finally {
+        progress?.close()
+      }
     }
 
     async function showDigestDialog(content: string, aiEnabled: boolean, aiSucceeded: boolean) {
