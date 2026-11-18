@@ -55,17 +55,21 @@ export interface ReleaseNote {
 }
 
 const AUTO_MODEL_PREFERENCE = [
-  "deepseek-v4.1-flash-free",
-  "mimo-v2.6-flash-free",
-  "nemotron-3.5-lightning-free",
-  "beam-free",
-  "longcat-2.5-free",
-  "hy4-flash-free",
-  "flint-40b-free",
-  "nemotron-3.5-super-vl-free",
-  "big-pickle",
-  "iceman-free",
-  "inkling-2-small-free",
+  "opencode-go/hy4-flash-free",
+  "opencode-go/longcat-2.5-free",
+  "opencode-go/beam-free",
+  "opencode-go/iceman-contributor-free",
+  "opencode/deepseek-v4.1-flash-free",
+  "opencode/mimo-v2.6-flash-free",
+  "opencode/nemotron-3.5-lightning-free",
+  "opencode/beam-free",
+  "opencode/longcat-2.5-free",
+  "opencode/hy4-flash-free",
+  "opencode/flint-40b-free",
+  "opencode/nemotron-3.5-super-vl-free",
+  "opencode/big-pickle",
+  "opencode/iceman-free",
+  "opencode/inkling-2-small-free",
 ]
 
 const OPTIMIZATION_HINT =
@@ -90,9 +94,11 @@ export function compareVersions(left: string, right: string): number {
   return 0
 }
 
+const FREE_MODEL_PROVIDERS = new Set(["opencode", "opencode-go"])
+
 export function isZeroCostModel(model: ModelCandidate): boolean {
   if (
-    model.providerID !== "opencode" ||
+    !FREE_MODEL_PROVIDERS.has(model.providerID) ||
     model.enabled !== true ||
     model.status === "deprecated" ||
     model.type === "decision"
@@ -114,8 +120,10 @@ export function listFreeModels(models: ModelCandidate[]): ModelCandidate[] {
   return models
     .filter(isZeroCostModel)
     .sort((left, right) => {
-      const a = AUTO_MODEL_PREFERENCE.indexOf(left.id)
-      const b = AUTO_MODEL_PREFERENCE.indexOf(right.id)
+      const leftRef = `${left.providerID}/${left.id}`
+      const rightRef = `${right.providerID}/${right.id}`
+      const a = AUTO_MODEL_PREFERENCE.indexOf(leftRef)
+      const b = AUTO_MODEL_PREFERENCE.indexOf(rightRef)
       if (a !== -1 || b !== -1) {
         if (a === -1) return 1
         if (b === -1) return -1

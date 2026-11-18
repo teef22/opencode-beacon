@@ -41,10 +41,22 @@ test("AI indicator reflects configured mode and summary result", () => {
 
 test("only known zero-cost OpenCode chat models are eligible", () => {
   assert.equal(isZeroCostModel(freeModel("deepseek-v4.1-flash-free")), true)
+  assert.equal(isZeroCostModel(freeModel("hy4-flash-free", { providerID: "opencode-go" })), true)
   assert.equal(isZeroCostModel(freeModel("paid", { cost: [{ input: 0, output: 0.01, cache: { read: 0, write: 0 } }] })), false)
   assert.equal(isZeroCostModel(freeModel("unknown", { cost: [{ input: 0, output: 0 }] })), false)
   assert.equal(isZeroCostModel(freeModel("other-provider", { providerID: "openrouter" })), false)
   assert.equal(isZeroCostModel(freeModel("disabled", { enabled: false })), false)
+})
+
+test("Auto picks a zero-cost OpenCode Go model first when available", () => {
+  const models = [
+    freeModel("deepseek-v4.1-flash-free"),
+    freeModel("hy4-flash-free", { providerID: "opencode-go" }),
+    freeModel("paid", { cost: [{ input: 1, output: 1, cache: { read: 0, write: 0 } }] }),
+  ]
+
+  assert.equal(chooseAutoModel(models)?.providerID, "opencode-go")
+  assert.equal(chooseAutoModel(models)?.id, "hy4-flash-free")
 })
 
 test("Auto picks the preferred free model and excludes paid candidates", () => {

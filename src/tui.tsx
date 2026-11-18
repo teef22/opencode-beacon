@@ -15,7 +15,7 @@ import {
   type ReleaseNote,
 } from "./core.ts"
 
-type ModelPreference = "auto" | "raw" | `opencode/${string}`
+type ModelPreference = "auto" | "raw" | `${"opencode" | "opencode-go"}/${string}`
 
 interface BeaconState {
   lastReadByChannel: Record<string, string>
@@ -387,7 +387,7 @@ export default Plugin.define({
         ...models.map((model) => ({
           title: model.name,
           value: modelKey(model) as ModelPreference,
-          description: `OpenCode · zero listed cost · ${Math.round((model.limit?.context ?? 0) / 1000)}K context · provider data terms may differ`,
+          description: `${model.providerID === "opencode-go" ? "OpenCode Go" : "OpenCode"} · zero listed cost · ${Math.round((model.limit?.context ?? 0) / 1000)}K context · provider data terms may differ`,
           category: "Available free models",
         })),
       ]
