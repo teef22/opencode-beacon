@@ -10,6 +10,7 @@ import {
   normalizeVersion,
   releaseIsOptimization,
   releaseToNote,
+  sortReleaseNotesNewestFirst,
 } from "../src/core.ts"
 
 const freeModel = (id, overrides = {}) => ({
@@ -81,6 +82,20 @@ test("parses release categories and separates performance optimizations", () => 
   assert.equal(releaseIsOptimization(note.improvements[0]), true)
 })
 
+test("orders releases by published date, then descending version", () => {
+  const releases = [
+    { tag_name: "v2.4.0", html_url: "https://example.test/2.4.0", published_at: "2026-11-16T10:00:00Z" },
+    { tag_name: "v2.3.2", html_url: "https://example.test/2.3.2", published_at: "2026-11-17T09:00:00Z" },
+    { tag_name: "v2.3.3", html_url: "https://example.test/2.3.3", published_at: "2026-11-17T08:00:00Z" },
+  ]
+  const notes = releases.map(releaseToNote)
+
+  assert.deepEqual(
+    sortReleaseNotesNewestFirst(notes).map((note) => note.version),
+    ["2.3.3", "2.3.2", "2.4.0"],
+  )
+})
+
 test("fallback digest includes categories and release versions without boilerplate", () => {
   const note = releaseToNote({
     tag_name: "v2.4.0",
@@ -100,8 +115,18 @@ test("release lookup includes every stable version in range and excludes newer o
   const releases = [
     { tag_name: "v2.4.0", html_url: "https://example.test/2.4.0", body: "### Highlights\n- Newer." },
     { tag_name: "v2.3.3-rc.1", prerelease: true, html_url: "https://example.test/rc", body: "Preview." },
-    { tag_name: "v2.3.2", html_url: "https://example.test/2.3.2", body: "### Highlights\n- Second." },
-    { tag_name: "v2.3.1", html_url: "https://example.test/2.3.1", body: "### Highlights\n- First." },
+    {
+      tag_name: "v2.3.2",
+      html_url: "https://example.test/2.3.2",
+      published_at: "2026-11-17T00:00:00Z",
+      body: "### Highlights\n- Second.",
+    },
+    {
+      tag_name: "v2.3.1",
+      html_url: "https://example.test/2.3.1",
+      published_at: "2026-11-18T00:00:00Z",
+      body: "### Highlights\n- First.",
+    },
     { tag_name: "v2.3.0", html_url: "https://example.test/2.3.0", body: "### Highlights\n- Baseline." },
   ]
   const fetcher = async () => new Response(JSON.stringify(releases), { status: 200 })
