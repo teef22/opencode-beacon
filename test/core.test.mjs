@@ -5,6 +5,7 @@ import {
   chooseAutoModel,
   compareVersions,
   fetchReleaseRange,
+  formatAIStatus,
   isZeroCostModel,
   listFreeModels,
   normalizeVersion,
@@ -30,6 +31,12 @@ test("normalizes and compares stable versions", () => {
   assert.equal(compareVersions("2.3.0", "2.2.9"), 1)
   assert.equal(compareVersions("v2.3.0", "2.3.0"), 0)
   assert.equal(compareVersions("2.3.0", "2.3.1"), -1)
+})
+
+test("AI indicator reflects configured mode and summary result", () => {
+  assert.equal(formatAIStatus(false, false), "AI off")
+  assert.equal(formatAIStatus(true, true), "AI on (success)")
+  assert.equal(formatAIStatus(true, false), "AI on (failure)")
 })
 
 test("only known zero-cost OpenCode chat models are eligible", () => {

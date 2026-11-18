@@ -186,6 +186,11 @@ export function releaseIsOptimization(text: string): boolean {
   return OPTIMIZATION_HINT.test(text)
 }
 
+export function formatAIStatus(enabled: boolean, succeeded: boolean): string {
+  if (!enabled) return "AI off"
+  return `AI on (${succeeded ? "success" : "failure"})`
+}
+
 export function sortReleaseNotesNewestFirst(notes: ReleaseNote[]): ReleaseNote[] {
   return [...notes].sort((left, right) => {
     if (left.date && right.date && left.date !== right.date) {
