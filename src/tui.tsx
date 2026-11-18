@@ -259,7 +259,7 @@ export default Plugin.define({
               </scrollbox>
               <box flexDirection="row" justifyContent="space-between" width="100%">
                 <text fg={context.theme.text.muted} wrapMode="none">
-                  <strong>/beacon read</strong> Mark read · <strong>/beacon model</strong> Change model
+                  /beacon [<strong>model</strong>|<strong>read</strong>|<strong>latest</strong>|<strong>reset</strong>]
                 </text>
               </box>
             </box>
