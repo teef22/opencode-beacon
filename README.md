@@ -22,7 +22,8 @@ falls back to curated release notes if no free model is available.
 - `/beacon model` chooses Auto, a currently available free OpenCode model, or
   release-notes-only mode.
 - The dialog's AI status follows this setting: Auto and a selected free model
-  show `AI on`; release-notes-only shows `AI off`.
+  show `AI on (success)` when a generated or cached summary is used and
+  `AI on (failure)` when generation fails; release-notes-only shows `AI off`.
 - Auto tries up to three available zero-cost models in preference order; if all
   fail, Beacon shows the curated notes.
 - Never sends release notes to a model with non-zero or unknown pricing.
