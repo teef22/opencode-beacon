@@ -4,6 +4,8 @@ Catch up on OpenCode releases after an update, including versions you skipped.
 Beacon can summarize the release range with a zero-cost OpenCode model, or show
 curated release notes directly.
 
+> A quick disclosure: Beacon was built with AI-assisted coding.
+
 ## Features
 
 - Shows a digest on the first launch after a newer stable OpenCode release.
