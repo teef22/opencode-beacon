@@ -34,6 +34,8 @@ falls back to curated release notes if no free model is available.
 - OpenCode 2.3.0 or later.
 - A connected OpenCode provider account with at least one available model whose
   listed input, output, and cache prices are all zero to use AI summaries.
+- Zero-cost models from either `opencode` or `opencode-go` are eligible; when
+  available, OpenCode Go free models are preferred.
 - Network access to GitHub for release notes. Offline, Beacon keeps the pending
   update; retry with `/beacon` when connectivity returns.
 
