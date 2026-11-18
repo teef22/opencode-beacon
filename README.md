@@ -10,6 +10,8 @@ falls back to curated release notes if no free model is available.
 - Shows a digest the first time the TUI starts on a newer stable release.
 - Includes every stable release between the last version you marked read and
   the version currently running.
+- Orders releases newest first by publication date, using descending version
+  number when dates tie or are unavailable.
 - Highlights major changes, efficiency improvements, smaller improvements,
   fixes, and breaking changes separately.
 - Uses theme-aware colors to distinguish sections, with a centered, wide,
@@ -19,6 +21,8 @@ falls back to curated release notes if no free model is available.
 - `/beacon read` marks the current release range as read.
 - `/beacon model` chooses Auto, a currently available free OpenCode model, or
   release-notes-only mode.
+- The dialog's AI status follows this setting: Auto and a selected free model
+  show `AI on`; release-notes-only shows `AI off`.
 - Auto tries up to three available zero-cost models in preference order; if all
   fail, Beacon shows the curated notes.
 - Never sends release notes to a model with non-zero or unknown pricing.
