@@ -1,51 +1,42 @@
 # OpenCode Beacon
 
-OpenCode Beacon is a TUI plugin that catches you up on OpenCode releases after
-an update, including versions you skipped. It fetches public GitHub release
-notes, offers an AI digest using only confirmed zero-cost OpenCode models, and
-falls back to curated release notes if no free model is available.
+Catch up on OpenCode releases after an update, including versions you skipped.
+Beacon can summarize the release range with a zero-cost OpenCode model, or show
+curated release notes directly.
 
 ## Features
 
-- Shows a digest the first time the TUI starts on a newer stable release.
-- Includes every stable release between the last version you marked read and
-  the version currently running.
-- Orders releases newest first by publication date, using descending version
-  number when dates tie or are unavailable.
-- Highlights major changes, efficiency improvements, smaller improvements,
-  fixes, and breaking changes separately.
-- Uses theme-aware colors to distinguish sections, with a centered, wide,
-  scrollable digest dialog, with AI status on the left and `esc` on the right
-  of the top row.
-- `/beacon` reopens the pending digest.
-- `/beacon read` marks the current release range as read.
-- `/beacon model` chooses Auto, a currently available free OpenCode model, or
-  release-notes-only mode.
-- The dialog's AI status follows this setting: Auto and a selected free model
-  show `AI on (success)` when a generated or cached summary is used and
-  `AI on (failure)` when generation fails; release-notes-only shows `AI off`.
-- Auto tries up to three available zero-cost models in preference order; if all
-  fail, Beacon shows the curated notes.
-- Never sends release notes to a model with non-zero or unknown pricing.
-- Never sends project files, prompts, or session history to a model.
+- Shows a digest on the first launch after a newer stable OpenCode release.
+- Includes every stable release since the last version you marked read.
+- Orders releases newest-first by publication date, then descending version.
+- Groups changes into features, efficiency improvements, smaller fixes, and
+  breaking changes, with theme-aware section colors.
+- Shows a scrollable digest with `esc` and an AI status:
+  `AI off`, `AI on (success)`, or `AI on (failure)`.
+- Displays an animated progress window while an AI summary is generated.
+- Uses only zero-cost `opencode` or `opencode-go` models. It never retries with
+  a paid model and never sends project files, prompts, or session history.
+- Falls back to curated release notes when no free model is available.
 
-## Requirements
+The first launch establishes a baseline. It does not show old releases before
+that point.
 
-- OpenCode 2.3.0 or later.
-- A connected OpenCode provider account with at least one available model whose
-  listed input, output, and cache prices are all zero to use AI summaries.
-- Zero-cost models from either `opencode` or `opencode-go` are eligible; when
-  available, OpenCode Go free models are preferred.
-- Network access to GitHub for release notes. Offline, Beacon keeps the pending
-  update; retry with `/beacon` when connectivity returns.
+## Commands
 
-Free model availability, usage limits, region restrictions, and data policies
-can change. The model picker uses the live OpenCode catalog and displays the
-models currently available to your account.
+| Command | Purpose |
+| --- | --- |
+| `/beacon` | Open the pending digest. Reports when there are no unread releases. |
+| `/beacon latest` | Browse the newest stable release without changing read status. |
+| `/beacon read` | Mark everything through the running version as read. |
+| `/beacon model` | Choose Auto, an available free model, or release-notes-only mode. |
+| `/beacon reset` | Clear Beacon's cache, read/prompt tracking, and model choice after confirmation. |
 
-## Install locally
+`/beacon reset` restarts tracking from the running version. It does not touch
+OpenCode sessions, credentials, or other application data.
 
-From this directory:
+## Install
+
+Requires OpenCode 2.3.0 or later and network access to GitHub for release notes.
 
 ```sh
 npm install
@@ -63,18 +54,19 @@ Add the absolute path to this directory to the `plugins` array in your global
 Keep any existing CLI settings in that file. OpenCode reloads `cli.json` while
 running; use `/reload` if needed.
 
-## Commands
+## AI summaries
 
-- `/beacon` — open the pending digest; after marking it read, it reports that
-  there are no unread notes.
-- `/beacon latest` — browse the newest published stable release without changing
-  the read-through version.
-- `/beacon read` — mark all releases through the running version as read.
-- `/beacon model` — choose Auto, an available free model, or no AI.
-- `/beacon reset` — after confirmation, clear Beacon's cached summaries,
-  read/prompt tracking, and model selection. Tracking restarts from the running
-  version; OpenCode sessions, credentials, and other application data are untouched.
+Auto tries up to three available zero-cost models, preferring OpenCode Go free
+models. A cached summary is reused for the same release range and model.
 
-The first launch after installing Beacon records the current version as the
-starting point. It does not surprise you with old release notes; the first
-automatic digest appears after a later OpenCode update.
+AI status reflects the current setting and result:
+
+| Status | Meaning |
+| --- | --- |
+| `AI off` | Release-notes-only mode. |
+| `AI on (success)` | A generated or cached AI summary is shown. |
+| `AI on (failure)` | All free-model attempts failed; curated notes are shown. |
+
+Free-model availability, quotas, regions, and provider data policies can change.
+The model picker uses the live OpenCode catalog. Only the public release notes
+are sent to the selected model.
