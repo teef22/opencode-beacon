@@ -69,6 +69,9 @@ running; use `/reload` if needed.
   the read-through version.
 - `/beacon read` — mark all releases through the running version as read.
 - `/beacon model` — choose Auto, an available free model, or no AI.
+- `/beacon reset` — after confirmation, clear Beacon's cached summaries,
+  read/prompt tracking, and model selection. Tracking restarts from the running
+  version; OpenCode sessions, credentials, and other application data are untouched.
 
 The first launch after installing Beacon records the current version as the
 starting point. It does not surprise you with old release notes; the first

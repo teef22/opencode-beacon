@@ -329,6 +329,36 @@ export default Plugin.define({
       })
     }
 
+    async function resetBeacon() {
+      const current = currentVersion()
+      const confirmed = await context.ui.dialog.confirm({
+        title: "Reset OpenCode Beacon?",
+        message: [
+          "This clears Beacon's cached summaries, read/prompt tracking, and selected model.",
+          current
+            ? `Tracking will restart from ${displayVersion(current)}.`
+            : "Tracking will restart the next time Beacon can read the running version.",
+          "OpenCode sessions, credentials, and other application data are not affected.",
+        ].join("\n\n"),
+        label: { confirm: "Reset Beacon", cancel: "Cancel" },
+      })
+      if (confirmed !== true) return
+
+      await updateState((draft) => {
+        draft.lastReadByChannel = current ? { [channel]: current } : {}
+        draft.lastPromptedByChannel = {}
+        draft.modelPreference = "auto"
+        draft.summaryCache = {}
+      })
+      context.ui.toast.show({
+        title: "OpenCode Beacon reset",
+        message: current
+          ? `Beacon is tracking from ${displayVersion(current)} with Auto summaries.`
+          : "Beacon data was cleared. Tracking will initialize at the next launch.",
+        variant: "success",
+      })
+    }
+
     async function chooseModel() {
       let models: ModelCandidate[] = []
       try {
@@ -410,6 +440,10 @@ export default Plugin.define({
         await chooseModel()
         return
       }
+      if (command === "reset") {
+        await resetBeacon()
+        return
+      }
 
       try {
         await (command === "latest" ? openLatestDigest() : openDigest())
@@ -452,6 +486,14 @@ export default Plugin.define({
           run: () => runCommand("latest"),
         },
         {
+          id: "opencode-beacon.reset",
+          title: "Reset Beacon data",
+          description: "Clear Beacon's cache, read state, and model selection",
+          group: "OpenCode Beacon",
+          palette: true,
+          run: resetBeacon,
+        },
+        {
           id: "opencode-beacon.read",
           title: "Mark Beacon releases as read",
           group: "OpenCode Beacon",
@@ -463,6 +505,7 @@ export default Plugin.define({
         "opencode-beacon.open",
         "opencode-beacon.model",
         "opencode-beacon.latest",
+        "opencode-beacon.reset",
         "opencode-beacon.read",
       ],
     }))
