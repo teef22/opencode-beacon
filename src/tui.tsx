@@ -121,7 +121,6 @@ export default Plugin.define({
 
       let summary: string | undefined
       let generationFailed = false
-      let aiUsed = false
       let candidates: ModelCandidate[] = []
       if (preference !== "raw") {
         if (preference === "auto") {
@@ -138,7 +137,6 @@ export default Plugin.define({
           const cached = state.summaryCache[key]
           if (cached) {
             summary = cached
-            aiUsed = true
             break
           }
 
@@ -151,7 +149,6 @@ export default Plugin.define({
             if (!text) throw new Error("The model returned an empty summary")
             const generated = text
             summary = generated
-            aiUsed = true
             await updateState((draft) => {
               draft.summaryCache[key] = generated
               const keys = Object.keys(draft.summaryCache)
@@ -193,10 +190,10 @@ export default Plugin.define({
         })
       }
 
-      await showDigestDialog(plainText(summary), aiUsed)
+      await showDigestDialog(plainText(summary), preference !== "raw")
     }
 
-    async function showDigestDialog(content: string, aiUsed: boolean) {
+    async function showDigestDialog(content: string, aiEnabled: boolean) {
       context.ui.dialog.set({ size: "xlarge", centered: true })
       const scrollHeight = Math.max(1, Math.min(22, context.renderer.height - 12))
       await new Promise<void>((resolve) => {
@@ -215,10 +212,10 @@ export default Plugin.define({
             >
               <box flexDirection="row" justifyContent="space-between" alignItems="center" width="100%">
                 <text
-                  fg={aiUsed ? context.theme.text.feedback.success.base : context.theme.text.muted}
+                  fg={aiEnabled ? context.theme.text.feedback.success.base : context.theme.text.muted}
                   wrapMode="none"
                 >
-                  AI {aiUsed ? "on" : "off"}
+                  AI {aiEnabled ? "on" : "off"}
                 </text>
                 <text fg={context.theme.text.action.secondary.base} wrapMode="none">
                   <strong>esc</strong>
